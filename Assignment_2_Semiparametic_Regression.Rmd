@@ -1,0 +1,127 @@
+---
+title: "Semiparametic Regression - Assignment 2"
+author: "Szymon Armata <br/>| 341593 <br/>| Data Science"
+date: "23 October 2022"
+output:
+  pdf_document:
+    toc: yes
+    number_sections: yes
+    latex_engine: xelatex
+    extra_dependencies: subfig
+header-includes: \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.pos = 'H')
+```
+\newpage
+\section{Task 1.}
+
+\subsection{a}
+
+First, we build a cubic regression model using information on Warsaw apartment prices:
+$$y i=\beta 0+\beta 1+\beta 2x i^2+\beta 3x i^3+\epsilon i$$
+Next, we plot the fit and examine the residuals:
+```{r, echo=FALSE}
+library(HRW)
+
+data(WarsawApts)
+
+x = WarsawApts$construction.date
+y = WarsawApts$areaPerMzloty
+
+fitCubic = lm(y ~ poly(x, 3, raw = TRUE))
+
+ng = 101
+xg = seq(1.01*min(x) - 0.01*max(x),
+         1.01*max(x) - 0.01*min(x), length = ng)
+           
+fHatCubicg = as.vector(cbind(rep(1, ng), xg, xg^2, xg^3)%*%fitCubic$coef)
+```
+```{r, echo=FALSE}
+plot(x,y, col="dodgerblue")
+lines(xg, fHatCubicg, col = "darkgreen", lwd = 2)
+```
+```{r, echo=FALSE}
+plot(fitted(fitCubic), residuals(fitCubic),
+      col = "dodgerblue")
+abline(0,0, col = "slateblue", lwd = 2)
+```
+From the first plot above we can see that a smooth curve provides a sufficient level of data fit.
+
+The second plot shows no dependence between the fitted values and the residuals, which supports homoscedasticity.
+
+\subsection{b}
+
+Now we define the truncated line function with a knot at kappa $(\kappa)$:
+
+$$(x-\kappa)_+=(x-\kappa)\cdot1_{\{x>\kappa\}}$$
+
+```{r, echo=FALSE}
+trLin = function(x,kappa) 
+  
+return((x-kappa)*(x>kappa))
+```
+\subsection{c}
+
+Next, we consider the spline regression model to data from __a__:
+
+$$y_i=\beta_0 + \beta_1x_i + u_1(x_i-\kappa_1)_+ + u_2(x_i-\kappa_2)_+ + u_3(x_i-\kappa_3)_+ + \epsilon_i$$
+
+```{r, echo=FALSE}
+knots = seq(min(x), max(x), length = 5)[-c(1,5)]
+X = cbind(1,x)
+for(k in 1:3) X = cbind(X, trLin(x, knots[k]))
+fitTLQ = lm(y ~ -1 + X)
+Xg = cbind(1,xg)
+for(k in 1:3) Xg = cbind(Xg,trLin(xg, knots[k]))
+fHatTLQg = as.vector(Xg%*%fitTLQ$coef)
+```
+
+```{r, echo=FALSE}
+plot(x,y, col = "dodgerblue")
+lines(xg, fHatTLQg, col = "darkgreen", lwd = 2)
+```
+
+```{r, echo=FALSE}
+plot(fitted(fitTLQ), residuals(fitTLQ), col = "dodgerblue")
+abline(0,0,col="slateblue", lwd = 2)
+```
+On the first plot we obtain curve which is quite good fitted to the data, but not that smooth like on the plot from __a__. 
+
+The second plot is similar to the one from point __a__. No dependence is seen between the residuals and the fitted values. This means good properties of the model.
+
+\subsection{d}
+
+```{r, echo=FALSE}
+#the function is analogical to the one from point c
+
+knots2 = seq(min(x), max(x), length = 22)[-c(1,22)]
+X = cbind(1,x)
+for( k in 1:20) X = cbind(X, trLin(x, knots2[k]))
+fitTLQ = lm(y~-1+X)
+Xg = cbind(1,xg)
+for(k in 1:20) Xg = cbind( Xg, trLin(xg, knots2[k]))
+fHatTLQg = as.vector(Xg%*%fitTLQ$coefficients)
+```
+
+```{r, echo=FALSE}
+plot(x,y, col = "dodgerblue")
+lines(xg, fHatTLQg, col = "darkgreen", lwd = 2)
+```
+
+```{r, echo=FALSE}
+plot(fitted(fitTLQ), residuals(fitTLQ), col = "dodgerblue")
+abline(0,0,col="slateblue", lwd = 2)
+```
+On the first plot, we can see that there are too many knotes and the curve is overfitted. There are too many fluctuations in the fitted line which do not necessarily show dependencies in the actual data.
+
+For example - in years 1940-1950 and 1980-1997, there is an extreme lack of data. In the second period we have about 14 observations to model, but the fitted line shows many dependencies (it has 4 extrema).
+
+On the other hand, the second plot does not show any dependence between the residuals and the fitted values.
+
+The model satisfied one of the assumptions, but the visual diagnosis of the fitted line suggests that it is not well constructed. We could use fewer knots to repair this model. 
+
+We could also do some better data mining to find some observations that we could subtract from our sample (i.e. which residuals don't appear to be normal by default).

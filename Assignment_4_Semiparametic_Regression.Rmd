@@ -1,0 +1,148 @@
+---
+title: "Semiparametic Regression - Assignment 4"
+author: "Szymon Armata <br/>| 341593 <br/>| Data Science"
+date: "08 November 2022"
+output:
+  pdf_document:
+    toc: yes
+    number_sections: yes
+    latex_engine: xelatex
+    extra_dependencies: subfig
+header-includes: \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.pos = 'H')
+```
+\newpage
+\section{Task 1.}
+
+```{r, echo=FALSE}
+library(HRW)
+library(mgcv)
+library(ggplot2)
+
+data(WarsawApts)
+
+x <- WarsawApts$construction.date
+y <- WarsawApts$areaPerMzloty
+
+fitGAMcr <- gam(y ~ s(x, bs = 'cr', k = 30))
+
+xg <- seq(min(x), max(x), length = 1001)
+
+fHatgGAMcr <- predict(fitGAMcr, newdata = data.frame(x = xg))
+```
+```{r, echo=FALSE}
+points <- cbind.data.frame(x, y)
+f1 <- cbind.data.frame(xg, fHatgGAMcr)
+
+ggplot() +
+    geom_point(data = points, aes(x = x, y = y), colour = 'lightblue') +
+    geom_line(data = f1, aes(x = xg, y = fHatgGAMcr), colour = 'darkgreen') +
+    labs(title = 'Smoothing apartament prices', x = 'Year of construction', y = 'Price') +
+    theme_minimal()
+```
+
+Even though there are times when there is a shortage of data (for example, the years 1980–1995) and the line appears to be overfitted, it can be seen that the fitting line represents the trend in apartment prices.
+
+\newpage
+\subsection{a}
+
+In this task we compare different types of penalized splines: Gaussians process basis functions, P-splines and thin plate regression and show their results on one plot.
+
+```{r, echo=FALSE}
+fitGAMgp <- gam(y ~ s(x, bs = 'gp', k = 30)) 
+fHatgGAMgp <- predict(fitGAMgp, newdata=data.frame(x = xg))
+
+fitGAMps <- gam(y ~ s(x, bs='ps', k = 30))
+fHatgGAMps <- predict(fitGAMps, newdata=data.frame(x = xg))
+
+fitGAMtp <- gam(y ~ s(x, bs='tp', k = 30)) 
+fHatgGAMtp <- predict(fitGAMtp, newdata=data.frame(x = xg))
+
+f2 <- cbind.data.frame(xg, fHatgGAMcr, fHatgGAMgp, fHatgGAMps, fHatgGAMtp)
+```
+
+```{r, echo=FALSE}
+ggplot() +
+    geom_point(data = points, aes(x = x, y = y), colour ='lightblue') +
+    geom_line(data = f2, aes(x = xg, y = fHatgGAMcr), colour = 'darkgreen') +
+    geom_line(data = f2, aes(x = xg, y = fHatgGAMgp), colour = 'darkred') +
+    geom_line(data = f2, aes(x = xg, y = fHatgGAMps), colour = 'yellow') +
+    geom_line(data = f2, aes(x = xg, y = fHatgGAMtp), colour = 'darkblue') +
+    labs(title = 'Basis functions comparison', x = 'Year of construction', y = 'Price') +
+    theme_minimal()
+```
+
+The differences between the various basis functions in this specific example are minimal, as we can see (or rather, as we cannot see).
+
+Only during times when there are few observations are there any discernible differences between them.
+
+We can get the conclusion that the basis functions we choose do not significantly affect line quality (on this particular data).
+
+\newpage
+\subsection{b}
+In this task we compare different numbers of knots (i.e. basis functions) used to fit (30,40,50,60) and show their results on one plot.
+
+```{r, echo=FALSE}
+fitGAMcr40 <- gam(y ~ s(x, bs = 'cr', k = 40))
+fHatgGAMcr40 <- predict(fitGAMcr40, newdata = data.frame(x = xg))
+fitGAMcr50 <- gam(y ~ s(x, bs = 'cr', k = 50))
+fHatgGAMcr50 <- predict(fitGAMcr50, newdata = data.frame(x = xg))
+fitGAMcr60 <- gam(y ~ s(x, bs = 'cr', k = 60))
+fHatgGAMcr60 <- predict(fitGAMcr60, newdata = data.frame(x = xg))
+f3 <- cbind.data.frame(xg, fHatgGAMcr, fHatgGAMcr40, fHatgGAMcr50, fHatgGAMcr60)
+```
+```{r, echo=FALSE}
+ggplot() +
+    geom_point(data = points, aes(x = x, y = y), colour = 'lightblue') +
+    geom_line(data = f3, aes(x = xg, y = fHatgGAMcr), colour = 'darkgreen') +
+    geom_line(data = f3, aes(x = xg, y = fHatgGAMcr40), colour = 'darkred') +
+    geom_line(data = f3, aes(x = xg, y = fHatgGAMcr50), colour = 'yellow') +
+    geom_line(data = f3, aes(x = xg, y = fHatgGAMcr60), colour = 'darkblue') +
+    labs(title = 'Knots number comparison', x = 'Year of construction', y = 'Price') +
+    theme_minimal()
+```
+There is no significant difference between plots of all four fits.
+
+Models with more than 30 nodes are not very different from the baseline one. It can therefore be assumed that the 30-node model represents all relevant trends in the data as well as the extremes.
+
+The relation between number of knots and fit is logarithmic, that means we have to choose hundreds of knots to see the difference, but on provided data that number of knots does not make any sense.
+
+\newpage
+Now, we do the same for lower numbers (10,20,30).
+
+```{r, echo=FALSE}
+fitGAMcr10 <- gam(y ~ s(x, bs = 'cr', k = 10))
+fHatgGAMcr10 <- predict(fitGAMcr10, newdata = data.frame(x = xg))
+fitGAMcr20 <- gam(y ~ s(x, bs = 'cr', k = 20))
+fHatgGAMcr20 <- predict(fitGAMcr20, newdata = data.frame(x = xg))
+f4 <- cbind.data.frame(xg, fHatgGAMcr, fHatgGAMcr10, fHatgGAMcr20)
+```
+```{r, echo=FALSE}
+ggplot() +
+    geom_point(data = points, aes(x = x, y = y), colour = 'lightblue') +
+    geom_line(data = f4, aes(x = xg, y = fHatgGAMcr), colour = 'darkgreen') +
+    geom_line(data = f4, aes(x = xg, y = fHatgGAMcr10), colour = 'darkred') +
+    geom_line(data = f4, aes(x = xg, y = fHatgGAMcr20), colour = 'yellow') +
+    labs(title = 'Knots number comparison (lower)', x = 'Year of construction', y = 'Price') +
+    theme_minimal()
+```
+In the case of this plot, the situation is a little different than before.
+
+Even a 20-knot model appears to be pretty close to versions with 30 knots or more. It depicts every trend in the data and every extreme that can be seen in higher-order models as well as the 20-knot model. 
+
+10-knot model is much different, because it fits the data less closely, but in my opinion, it is not overfitted. It captures the general trend in the data, but is less sensitive for the outliners.
+
+\newpage
+
+\subsection{c}
+
+Based on the graphs in subsections a and b, two main conclusions can be reached in the context of the relative influence of the type of basis and number of basis functions.
+
+Type of basis did not have much impact on fit. Both Gaussian process basis functions, P-splines and thin plate regression splines gave an almost identical plot shape, making it difficult to speak of much significance. I would assess their influence as very weak.
+
+The situation is slightly different in terms of the impact of number of basis function on fit. Up to a certain level, differences in the shapes of the plots could be seen quite clearly, while beyond this level the number of knots did not significantly affect the plot. I would assess their influence as strong below a certain level and weak above it.

@@ -1,0 +1,194 @@
+---
+title: "Semiparametic Regression - Assignment 3"
+author: "Szymon Armata <br/>| 341593 <br/>| Data Science"
+date: "2 November 2022"
+output:
+  pdf_document:
+    toc: yes
+    number_sections: yes
+    latex_engine: xelatex
+    extra_dependencies: subfig
+header-includes: \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.pos = 'H')
+```
+\newpage
+\section{Task 1.}
+We will begin this exercise by performing some linear algebra, including basis, determinants, etc.
+Then, we will implement OLS to determine a sample's regression coefficient.
+
+Let's define following functions on $[1,0]$
+
+$$T_1(x)=1,\qquad T_2(x)=x,\qquad T_3(x)=\left(x-\frac{1}{2}\right)_+$$
+
+and 
+
+$$B_1(x)=(1-2x)_+,\qquad B_2(x)=1-\mid 2x-1\mid_+,\qquad B_3(x)=(2x-1)_+$$
+\subsection{a}
+At first we have to obtain plots of the $T_i$ and $B_i$, $i = 1,2,3$.
+
+```{r, echo = FALSE}
+ng <- 101
+xg <- seq(0,1, length = ng)
+T1g <- rep(1,ng)
+T2g <- xg
+T3g <- (xg-0.5)*(xg-0.5>0)
+B1g <- (1-2*xg)*(1-2*xg>0)
+B2g <- 1-abs(2*xg-1)
+B3g <- 2*T3g
+
+par(mflow = c(2,1))
+
+plot(0, type = 'n',
+     xlim = c(0,1),
+     ylim = c(0,1),
+     xlab = 'x',
+     ylab = '',
+     bty = 'l')
+
+lines(xg, T1g, col = 1)
+lines(xg, T2g, col = 2)
+lines(xg, T3g, col = 3)
+
+text(0.1,0.8, expression(T[1]), col = 1)
+text(0.4,0.5, expression(T[2]), col = 2)
+text(0.8,0.2, expression(T[3]), col = 3)
+
+plot(0, type = 'n',
+     xlim = c(0,1),
+     ylim = c(0,1),
+     xlab = 'x',
+     ylab = '',
+     bty = 'l')
+
+lines(xg, B1g, col = 4)
+lines(xg, B2g, col = 5)
+lines(xg, B3g, col = 6)
+
+text(0.1,0.9, expression(B[1]), col = 4)
+text(0.4,0.9, expression(B[2]), col = 5)
+text(0.9,0.6, expression(B[3]), col = 6)
+```
+
+\newpage
+\subsection{b}
+Next, we have to find expressions for $B_1, B_2, B_3$ in terms of $T_1, T_2, T_3$.
+
+```{r, echo = FALSE}
+plot (0, type = 'n', 
+      xlim=c(0,1), 
+      ylim=c(0,1), 
+      xlab='x', 
+      ylab='',
+      bty='l')
+
+lines(xg, T1g-2*T2g+2*T3g, col = 4)
+lines(xg, 2*T2g-4*T3g, col = 5)
+lines(xg, 2*T3g, col = 6)
+
+text(0.1, 0.5, expression(T[1]-2*T[2]+2*T[3]), col = 4)
+text(0.3, 0.9, expression(2*T[2]-4*T[3]), col = 5)
+text(0.6, 0.4, expression(2*T[3]), col = 6)
+```
+
+So here are the representations we developed:
+$$B_1=T_1-2(T_2-T_3)$$
+$$B_2=2(T_2-2T_3)$$
+$$B_3=2T_3$$
+
+Now we have to find the result of this equation:$B_1+B_2+B_3$.
+
+\begin{equation}
+    \begin{split}
+       &  B_1+B_2+B_3 = T_1-2T_2+2T_3+2(T_2-2T_3)+2T_3 = T_1 = 1
+    \end{split}
+\end{equation}
+
+\newpage
+\subsection{c}
+
+To find matrix $L_{TB}$ 
+
+$$
+\begin{bmatrix}
+    B_1 & B_2 & B_3
+\end{bmatrix}
+=
+\begin{bmatrix}
+    T_1 & T_2 & T_3
+\end{bmatrix}
+L_{TB}
+$$
+
+we have to solve equation like this:
+
+$$
+\begin{bmatrix}
+    T_1-2(T_2-T_3) & 2(T_2-2T_3) & 2T_3
+\end{bmatrix}
+=
+\begin{bmatrix}
+    T_1 & T_2 & T_3
+\end{bmatrix}
+L_{TB}
+$$
+
+One of the solutions of this equation is following matrix:
+
+$$
+\begin{bmatrix}
+     1 &  0 & 0 \\
+    -2 &  2 & 0 \\
+     2 & -4 & 2
+\end{bmatrix}
+$$
+
+```{r, echo = FALSE}
+LTB = matrix(c(1,0,0,
+              -2,2,0,
+               2,-4,2), byrow = T, ncol = 3)
+```
+
+\subsection{d}
+Now we have to find a determinant of $L_TB$ and establish that $L_TB$ is invertible. In linear algebra language, this implies that ${\{B_1, B_2, B_3\}}$ is an alternative basis for the vector space of functions spanned by ${\{T_1, T_2, T_3\}}$
+
+```{r, echo = FALSE}
+det(LTB)
+```
+Determinant of $L_TB$ is not equal to 0, which means that matrix $L_TB$ is invertible.
+
+\newpage
+\subsection{e}
+Below we compare two models, first build using basis $\{T_1,T_2,T_3\}$, another using $\{B_1,B_2,B_3\}$. We expect that they are visually undifferentiated.
+
+```{r, echo = FALSE}
+
+par(mfrow = c(1,1))
+set.seed(1)
+n = 100
+x = sort(runif(100))
+y = cos(2*pi*x)  + 0.2*rnorm(n)
+
+plot(x, y, 
+     col = 'dodgerblue', 
+     bty = 'l')
+
+XT = cbind(rep(1,n), 
+            x, 
+            (2*x-1)*(2*x-1>0))
+
+XB = cbind((1-2*x)*(1-2*x>0), 
+            1 - abs(2*x-1),
+            (2*x-1)*(2*x-1>0))
+
+fitT = lm(y ~ -1+XT)
+fitB = lm(y ~ -1+XB)
+
+lines(x, fitted(fitT), col = 'orange', lwd = 9)
+lines(x, fitted(fitB), col = 'darkgreen', lwd = 2)
+```
+As seen above, fitted lines overlap each other. It confirms that ordinary least squares regression with design matrix $X_T$ leads to same fit as that with design matrix $X_B$.

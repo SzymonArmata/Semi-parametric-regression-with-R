@@ -1,0 +1,96 @@
+---
+title: "Semiparametric Regression - Assignment 6"
+author: "Szymon Armata <br/>| 341593 <br/>| Data Science"
+date: "17 November 2022"
+output:
+  pdf_document:
+    toc: yes
+    number_sections: yes
+    latex_engine: xelatex
+    extra_dependencies: subfig
+header-includes: \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.pos = 'H')
+```
+\newpage
+
+\section{Plot of the data}
+```{r, echo=FALSE}
+library(nlme)
+library(HRW)
+library(mgcv)
+data(WarsawApts)
+
+data(WarsawApts)
+x <- WarsawApts$construction.date
+y <- WarsawApts$areaPerMzloty
+```
+```{r, echo=FALSE}
+plot(x,y,
+     xlab = "construction date",
+     ylab = "area per million zloty", col="dodgerblue",
+     main = "Warsaw apartments: area vs. construction date")
+```
+\newpage
+\section{Task 1.}
+\subsection{a}
+In this point we will fit and plot a penalized spline fit to the running non-parametric regression example data with 30 cubic regression spline basis functions and GCV-based smoothing parameter selection.
+
+```{r, echo=FALSE}
+plot(x,y,
+     bty = 'l',
+     col = 'dodgerblue')
+
+fitGAMcr <- gam(y ~ s(x, bs = 'cr', k = 30))
+
+xg <- seq(min(x), max(x), length = 1001)
+
+fHatgGAMcr <- predict(fitGAMcr, newdata = data.frame(x = xg))
+lines(xg, fHatgGAMcr, col = 'darkgreen')
+```
+\newpage
+\subsection{b}
+In this point we will fit and plot a penalized spline fit to the running non-parametric regression example data with 30 cubic regression spline basis functions and REML-based smoothing parameter selection.
+
+```{r, echo=FALSE}
+plot(x,y,
+     bty = 'l',
+     col = 'dodgerblue')
+
+fitGAMcrREML <- gam(y ~ s(x, bs = 'cr', k = 30), method = 'REML')
+
+xg <- seq(min(x), max(x), length = 1001)
+
+fHatgGAMcrREML <- predict(fitGAMcrREML, newdata = data.frame(x = xg))
+lines(xg, fHatgGAMcrREML, col = 'darkgreen')
+```
+\newpage
+\subsection{c}
+Now we have to compare two smoothing parameter selection methods: GCV and REML. For a better comparison of the two methods, we will combine the two plots into one to see the similarities as well as the differences, which will best allow us to evaluate them.
+
+```{r, echo=FALSE}
+plot(x,y,
+     bty = 'l',
+     col = 'dodgerblue')
+     
+xg <- seq(min(x), max(x), length = 1001)
+
+fitGAMcr <- gam(y ~ s(x, bs = 'cr', k = 30))
+fHatgGAMcr <- predict(fitGAMcr, newdata = data.frame(x = xg))
+lines(xg, fHatgGAMcr, col = 'darkgreen')
+
+fitGAMcrREML <- gam(y ~ s(x, bs = 'cr', k = 30), method = 'REML')
+fHatgGAMcrREML <- predict(fitGAMcrREML, newdata = data.frame(x = xg))
+lines(xg, fHatgGAMcrREML, col = 'red')
+```
+On this plot the red line represents the curve plotted using the method of REML, while the green line represents the curve plotted with the method GCV. 
+
+Those two methods are based on different approaches, GCV is based on model selection, REML on likelihood. Comparing approaches based on model selection should result in nearly identical fits for all of them - they are equivalent.
+
+As can be seen, the lines are very close to each other, almost overlapping in many places (such as between 1965 and 1975). Their greatest differences are in times when there is a shortage of data (for example, the years 1940-1945 or 1980–1995). With fewer knots, REML resembles GCV slightly but is less susceptible to outliners.
+
+In summary, the choice of smoothing parameter selection method has a major impact on fit. The choice of a particular method will depend, among other things, on the initial dataset including the occurrence of outliners. In the case of our dataset, it is difficult to make a clear judgement as to which of the selected methods is more effective, but this does not affect the fact that the selection of the appropriate method has a significant impact on fit.

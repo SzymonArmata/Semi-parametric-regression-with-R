@@ -1,0 +1,95 @@
+---
+title: "Semiparametric Regression - Assignment 5"
+author: "Szymon Armata <br/>| 341593 <br/>| Data Science"
+date: "15 November 2022"
+output:
+  pdf_document:
+    toc: yes
+    number_sections: yes
+    latex_engine: xelatex
+    extra_dependencies: subfig
+header-includes: \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.pos = 'H')
+```
+\newpage
+
+\section{Plot of the data}
+```{r, echo=TRUE}
+library(nlme)
+library(HRW)
+data(WarsawApts)
+
+data(WarsawApts)
+x <- WarsawApts$construction.date
+y <- WarsawApts$areaPerMzloty
+```
+```{r, echo=TRUE}
+plot(x,y,
+     xlab = "construction date",
+     ylab = "area per million zloty", col="dodgerblue",
+     main = "Warsaw apartments: area vs. construction date")
+```
+
+\newpage
+\section{Task 3.}
+\subsection{a}
+```{r, echo=TRUE}
+area.perMz <- WarsawApts$areaPerMzloty
+const.date <- WarsawApts$construction.date
+```
+\subsection{b}
+```{r, echo=TRUE}
+numObs <- length(const.date)
+X <- cbind(rep(1,numObs), const.date)
+```
+\subsection{c}
+```{r, echo=TRUE}
+numIntKnots <- 35
+intKnots <- quantile(unique(const.date),
+seq(0, 1,
+length = numIntKnots + 2))[-c(1,numIntKnots + 2)]
+Z <- outer(const.date, intKnots, "-")
+Z <- Z * (Z > 0)
+```
+\subsection{d}
+```{r, echo=TRUE}
+dummyId <- factor(rep(1, numObs))
+Z.sm <- list(dummyId = pdIdent(~ -1 + Z))
+fit <- lme(area.perMz ~ -1 + X, random = Z.sm)
+```
+
+\newpage
+\section{Task 4.}
+\subsection{a}
+```{r, echo=TRUE}
+ng <- 1001
+range.date <- range(const.date)
+dategrid <- seq(range.date[1], range.date[2], length = ng)
+Xg <- cbind(rep(1, ng), dategrid)
+Zg <- outer(dategrid, intKnots, "-")
+Zg <- Zg * (Zg > 0)
+```
+\subsection{b}
+```{r, echo=TRUE}
+betaHat <- as.vector(fit$coef$fixed)
+uHat <- as.vector(fit$coef$random[[1]])
+```
+\subsection{c}
+```{r, echo=TRUE}
+fhat <- Xg %*% betaHat + Zg %*% uHat
+```
+\subsection{d}
+```{r, echo=TRUE}
+plot(const.date, area.perMz,
+xlab = "Construction date (years)",
+ylab = "Area per million zloty (m2)",
+main = "Warsaw apartments: area vs. construction date")
+lines(dategrid, fhat, lwd = 2, col = "red")
+```
+
+Even though there are times when there is a shortage of data (for example, the years 1940-1945 or 1980–1995) and the line appears to be overfitted, it can be seen that the fitting line represents the trend in apartment prices.
